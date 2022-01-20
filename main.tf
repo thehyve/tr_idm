@@ -22,7 +22,7 @@ variable "hetzner_dns" {
 }
 variable "server" {
   description = "The mapping of servername to server Data Center"
-  type = "map"
+  type = map(string)
   default = {
     "etc00" = "nbg1"
     "etc01" = "fsn1"
@@ -59,7 +59,7 @@ variable "domain" {
 
 # User Hetzner cloud
 provider "hcloud" {
-  token = "${var.hcloud_token}"
+  token = var.hcloud_token
 }
 
 # Get data from Hetzner Cloud
@@ -77,22 +77,25 @@ resource "hcloud_server" "host" {
   for_each = var.server
   name = each.key
   location = each.value
-  server_type = "${var.server_type}"
+  server_type = var.server_type
   keep_disk = true
   backups = true
-  image = "${var.server_image}"
+  image = var.server_image
+  labels = {
+    "freeipa" = ""
+  }
   ssh_keys = [
-    "${var.ssh_key}",
+    var.ssh_key,
   ]
   provisioner "remote-exec" {
     inline = [
       "dnf install -y python3 python3-libselinux"
     ]
     connection {
-      host = "${self.ipv4_address}"
+      host = self.ipv4_address
       type = "ssh"
-      user = "${var.remote_user}"
-      private_key = "${file("${var.ssh_key_private}")}"
+      user = var.remote_user
+      private_key = file(var.ssh_key_private)
     }
   }
 }
@@ -100,14 +103,14 @@ resource "hcloud_server" "host" {
 # Assign floating IP
 resource "hcloud_floating_ip_assignment" "fip4_ass" {
   for_each = var.server
-  floating_ip_id = "${data.hcloud_floating_ip.fip4[each.key].id}"
-  server_id = "${hcloud_server.host[each.key].id}"
+  floating_ip_id = data.hcloud_floating_ip.fip4[each.key].id
+  server_id = hcloud_server.host[each.key].id
 }
 # Attach volume
 resource "hcloud_volume_attachment" "vol_att" {
   for_each = var.server
-  volume_id = "${data.hcloud_volume.vol[each.key].id}"
-  server_id = "${hcloud_server.host[each.key].id}"
+  volume_id = data.hcloud_volume.vol[each.key].id
+  server_id = hcloud_server.host[each.key].id
 }
 
 # Create an inventory file from template
@@ -117,7 +120,7 @@ resource "null_resource" "inventory" {
   ]
   # Changes to any instance of the cluster requires re-provisioning
   triggers = {
-    cluster_instance_ids = "${join(",", [ for k, v in var.server: hcloud_server.host[k].id ])}"
+    cluster_instance_ids = join(",", [ for k, v in var.server: hcloud_server.host[k].id ])
   }
   provisioner "local-exec" {
     command = "echo '${templatefile("inventory.template", { hosts = "${hcloud_server.host}", fips4 = "${data.hcloud_floating_ip.fip4}", volumes = "${data.hcloud_volume.vol}", domain = "${var.domain}", user = "${var.remote_user}", forwarders = "${var.hetzner_dns}" })}' > inventory.yml"

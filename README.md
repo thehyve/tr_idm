@@ -51,6 +51,8 @@ We should create a project that will include infrastructure for this project.
 ##### Terraform CLI installation
 
 Use this [manual](https://learn.hashicorp.com/terraform/getting-started/install.html) to install Terraform CLI tool.
+Currently, version `0.12.x` is required.
+You can install it with apt for instance: `sudo apt install terraform=0.12.31`.
 
 ##### Terraform access configuration
 
@@ -63,7 +65,7 @@ credentials "app.terraform.io" {
 
 ##### Terraform backend initialisation:
 
-In order to initialise Terraform backend there shoud be created `backend.hcl` file in the root directory of this project with the following content:
+In order to initialise Terraform backend there should be created `backend.hcl` file in the root directory of this project with the following content:
 ```
 # backend.hcl
 hostname = "app.terraform.io"
@@ -200,7 +202,7 @@ We need to define values for some variables:
 There are several way to do that:
 
 * Use environment variables:
-   It is possible to create executalbe `vars.sh` file with the following content:
+   It is possible to create executable `vars.sh` file with the following content:
    ```bash
    #!/usr/bin/env bash
    export HCLOUD_TOKEN=...
@@ -208,7 +210,7 @@ There are several way to do that:
    export TF_VAR_ssh_key_private=...
    export TF_VAR_domain=...
    ```
-* Create `terraform.auto.tfvars` file containning variable in Terraform format:
+* Create `terraform.auto.tfvars` file containing variable in Terraform format:
    ```
    server_type = "..."
    ssh_key_private = "/home/username/.ssh/id_ed25519"
@@ -231,7 +233,7 @@ After we are done with previous steps, we can:
    ```
 2. Run the following command to provision servers:
    ```bash
-   terraform run
+   terraform apply
    ```
 
 ### Configuring and running FreeIPA services
@@ -241,7 +243,7 @@ This file defines values for all needed variables except 2 most important ones:
 * a password for `admin` user;
 * a password for `directory manager` user.
 
-These 2 password shoud be kept in secret.
+These 2 password should be kept in secret.
 
 There several way to pass these values to our ansible playbook:
 * passing them as `--extra-vars` parameter to `ansible-playbook` command, if we are sure that our CLI history is a safe place;
@@ -265,4 +267,4 @@ ansible-playbook -i inventory.yml --extra-vars "@varsafe.yml" --ask-vault-pass m
 
 It may take 20-30 minutes to finish this playbook. After that we may check availability of FreeIPA's web user interface.
 
-That is it! Feedback is wellcome!
+That is it! Feedback is welcome!
